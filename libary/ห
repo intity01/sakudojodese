@@ -1,0 +1,165 @@
+// SakuLex — Open EN/JP Lexicon (starter kit)
+// Goal: a tiny, dependency-light Typescript library that unifies open EN/JP lexicons
+// and exposes a single API for lookups: lemma → readings, senses, POS, frequency, examples.
+// This is a scaffold you can drop into a monorepo, then wire ingest scripts to fill /data.
+//
+// ┌ data/
+// │  ├ jmdict.min.jsonl         (derived from JMdict; CC BY-SA 4.0 — keep attribution!)
+// │  ├ kanjidic2.min.jsonl      (derived from KANJIDIC2; CC BY-SA 4.0)
+// │  ├ oewn.min.jsonl           (Open English WordNet; CC BY 4.0)
+// │  ├ wikidata_lexemes.jsonl   (Wikidata Lexemes; CC0)
+// │  ├ wordfreq_en.bin          (Zipf bins—derived values; Apache-2.0 from wordfreq)
+// │  └ tatoeba_samples.tsv      (CC BY 2.0 FR — store per-sentence attribution)
+// └ src/
+//    ├ saku-lex.ts               (this file)
+//    ├ ingest/                   (Node scripts to normalize sources → JSONL)
+//    └ LICENSES/                 (copy of all upstream licenses + ATTRIBUTION.md)
+//
+// NOTE: Keep data (CC BY/SA) and code (MIT/Apache) separated. Do not embed non-CC0 text
+// directly in code. At runtime load data files over HTTP/file and stitch in-memory.
+
+// ---------- Types ----------
+export type Lang = 'en' | 'ja';
+export type Script = 'Latn' | 'Jpan' | 'Kana' | 'Hira' | 'Kata';
+
+export type POS =
+  | 'noun' | 'verb' | 'adj' | 'adv' | 'pron' | 'det' | 'prep' | 'conj' | 'interj'
+  | '名詞' | '動詞' | '形容詞' | '副詞' | '代名詞' | '助詞' | '助動詞' | '連体詞' | '感動詞'
+  | 'その他';
+
+export interface Sense {
+  gloss: string;            // a single gloss (keep lang in parent Lexeme.lang)
+  source?: 'JMdict' | 'KANJIDIC2' | 'OeWn' | 'Wikidata' | 'Wiktionary' | 'Tatoeba';
+  pos?: POS;
+  tags?: string[];          // e.g. 'slang', 'polite', 'business'
+  synset?: string;          // WordNet synset id if available
+}
+
+export interface Example {
+  text: string;
+  translation?: string;     // short translation if available
+  source?: 'Tatoeba' | 'JMdict' | 'Wiktionary';
+  attribution?: string;     // required for CC BY sources (author id etc.)
+}
+
+export interface Frequency {
+  zipf?: number;            // Zipf value (wordfreq style)
+  rank?: number;            // optional rank
+  source?: 'wordfreq' | 'wiki' | 'custom';
+}
+
+export interface LexemeKey {
+  lang: Lang;
+  lemma: string;            // normalized surface form (lowercased for en, NFC for ja)
+}
+
+export interface Lexeme extends LexemeKey {
+  reading?: string;         // よみ
+  kana?: string;            // kana-only representation
+  kanji?: string;           // canonical kanji form (for ja)
+  pos?: POS[];
+  senses: Sense[];
+  examples?: Example[];
+  frequency?: Frequency;
+  forms?: string[];         // inflected/declined forms
+  pitch?: string;           // optional pitch-accent pattern if you add a licensed source later
+  meta?: Record<string, any>;
+}
+
+// ---------- Minimal in-memory store (replace with IndexedDB/SQLite later) ----------
+export class SakuLex {
+  private idx = new Map<string, Lexeme>();
+
+  constructor(initial?: Lexeme[]) {
+    if (initial) for (const e of initial) this.put(e);
+  }
+
+  static key(k: LexemeKey) {
+    return `${k.lang}\t${SakuLex.norm(k.lang, k.lemma)}`;
+  }
+
+  static norm(lang: Lang, s: string) {
+    if (lang === 'en') return s.toLowerCase();
+    // Japanese: NFC + trim full-width spaces
+    return (s || '').normalize('NFC').replace(/[\u3000\s]+/g, ' ').trim();
+  }
+
+  put(e: Lexeme) {
+    const k = SakuLex.key({ lang: e.lang, lemma: e.lemma });
+    this.idx.set(k, e);
+  }
+
+  get(lang: Lang, lemma: string): Lexeme | undefined {
+    return this.idx.get(SakuLex.key({ lang, lemma }));
+  }
+
+  // naive prefix search (optimize with a real index later)
+  search(lang: Lang, q: string, limit = 20): Lexeme[] {
+    const keyPrefix = `${lang}\t${SakuLex.norm(lang, q)}`;
+    const out: Lexeme[] = [];
+    for (const [k, v] of this.idx) {
+      if (k.startsWith(keyPrefix)) {
+        out.push(v);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
+}
+
+// ---------- Tiny seed data (safe to ship; purely demonstrative) ----------
+export const seed: Lexeme[] = [
+  // EN
+  {
+    lang: 'en',
+    lemma: 'student',
+    pos: ['noun'],
+    senses: [ { gloss: 'a person who is studying at a school or college', source: 'OeWn' } ],
+    frequency: { zipf: 4.85, source: 'wordfreq' },
+  },
+  {
+    lang: 'en',
+    lemma: 'improve',
+    pos: ['verb'],
+    senses: [ { gloss: 'to make or become better', source: 'OeWn' } ],
+    frequency: { zipf: 4.18, source: 'wordfreq' },
+  },
+  // JA
+  {
+    lang: 'ja',
+    lemma: 'ありがとう',
+    reading: 'ありがとう',
+    kana: 'ありがとう',
+    kanji: '有り難う',
+    pos: ['感動詞'],
+    senses: [ { gloss: 'thank you', source: 'JMdict' } ],
+    examples: [ { text: '本当にありがとう。', translation: 'Thank you so much.', source: 'Tatoeba', attribution: 'Tatoeba user id' } ],
+    frequency: { zipf: 5.0, source: 'wordfreq' },
+  },
+  {
+    lang: 'ja',
+    lemma: '読む',
+    reading: 'よむ',
+    kana: 'よむ',
+    kanji: '読む',
+    pos: ['動詞'],
+    senses: [ { gloss: 'to read', source: 'JMdict' } ],
+    forms: ['読みます', '読んだ', '読んで', '読める'],
+  },
+];
+
+// Convenience factory
+export function createSeeded() {
+  return new SakuLex(seed);
+}
+
+// ---------- Ingest stubs (outline) ----------
+// You will implement these as Node scripts under src/ingest/*, then call them in a build step.
+// - ingest-jmdict.ts: parse JMdict.xml → JSONL Lexeme[] (keep full attribution + license text)
+// - ingest-kanjidic2.ts: merge kanji metadata into existing JA lexemes by kanji key
+// - ingest-oewn.ts: parse OeWn LMF/RDF → JSONL Lexeme[] for EN
+// - ingest-wikidata-lexemes.ts: fetch selected L-items (forms, POS) via dumps/API → JSONL
+// - ingest-wordfreq.ts: precompute zipf bins per language → binary (.bin) for quick load
+//
+// Keep LICENSES/ with copies of: CC BY-SA 4.0 (EDRDG), CC BY 4.0 (OeWn), CC0 (Wikidata),
+// and attributions required by Tatoeba (per-sentence author).
