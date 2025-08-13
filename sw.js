@@ -1,7 +1,7 @@
-// Service Worker for Saku Dojo v2
-// Enables offline functionality and caching
+// Service Worker for SAKULANG
+// Enhanced PWA with notifications and offline functionality
 
-const CACHE_NAME = 'saku-dojo-v2-v1.0.0';
+const CACHE_NAME = 'sakulang-v1.0.0';
 const STATIC_CACHE_URLS = [
   '/',
   '/index.html',

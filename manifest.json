@@ -1,7 +1,7 @@
 {
-  "name": "Saku Dojo v2 - Language Learning",
-  "short_name": "Saku Dojo v2",
-  "description": "Learn English and Japanese with interactive quizzes and exercises",
+  "name": "SAKULANG - Language Learning Platform",
+  "short_name": "SAKULANG",
+  "description": "Free language learning with beautiful UI, analytics, and smart notifications",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F9FAFB",
