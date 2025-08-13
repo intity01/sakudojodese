@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { DojoEngine } from './engine/DojoEngine';
 import type { Track, Framework, Mode, ProgressEntry } from './types/core';
 import { sampleQuestionBank } from '../demo';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { analytics } from './services/analytics';
+import { useAuth } from './services/auth';
+import { useTranslation } from './hooks/useTranslation';
+import './styles/themes.css';
 import './App.css';
 
 // Components
@@ -9,8 +14,9 @@ import StartScreen from './components/StartScreen';
 import QuestionScreen from './components/QuestionScreen';
 import ResultScreen from './components/ResultScreen';
 import ProgressScreen from './components/ProgressScreen';
+import SettingsScreen from './components/SettingsScreen';
 
-type AppState = 'start' | 'quiz' | 'result' | 'progress';
+type AppState = 'start' | 'quiz' | 'result' | 'progress' | 'settings';
 
 interface SessionConfig {
   track: Track;
@@ -20,11 +26,23 @@ interface SessionConfig {
   questionCount?: number;
 }
 
-function App() {
+const AppContent = () => {
   const [appState, setAppState] = useState<AppState>('start');
   const [engine] = useState(() => new DojoEngine(sampleQuestionBank));
   const [progressHistory, setProgressHistory] = useState<ProgressEntry[]>([]);
   const [currentProgress, setCurrentProgress] = useState<ProgressEntry | null>(null);
+  const { user, loginAsGuest } = useAuth();
+  const { t } = useTranslation();
+
+  // Initialize analytics and auto-login
+  useEffect(() => {
+    analytics.trackPageView('app_start');
+    
+    // Auto-login as guest if no user
+    if (!user) {
+      loginAsGuest();
+    }
+  }, [user, loginAsGuest]);
 
   // Load progress from localStorage
   useEffect(() => {
@@ -73,14 +91,36 @@ function App() {
     setAppState('progress');
   };
 
+  const showSettings = () => {
+    setAppState('settings');
+  };
+
   return (
     <div className="app">
       <header className="app-header">
         <div className="container">
-          <h1 className="app-title">
-            🎌 Saku Dojo v2
-          </h1>
-          <p className="app-subtitle">Language Learning Platform</p>
+          <div className="header-content">
+            <div className="header-main">
+              <h1 className="app-title">
+                🎌 SAKULANG
+              </h1>
+              <p className="app-subtitle">{t('tagline')}</p>
+            </div>
+            <div className="header-actions">
+              {user && (
+                <div className="user-info">
+                  <span className="user-name">👋 {user.username}</span>
+                </div>
+              )}
+              <button 
+                onClick={showSettings}
+                className="btn btn-secondary btn-sm settings-btn"
+                title={t('settings')}
+              >
+                ⚙️
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -120,15 +160,30 @@ function App() {
               }}
             />
           )}
+          
+          {appState === 'settings' && (
+            <SettingsScreen 
+              onBack={resetToStart}
+            />
+          )}
         </div>
       </main>
 
       <footer className="app-footer">
         <div className="container">
-          <p>&copy; 2024 Saku Dojo v2 - Open Source Language Learning</p>
+          <p>&copy; 2024 SAKULANG - Free Language Learning Platform</p>
         </div>
       </footer>
     </div>
+  );
+};
+
+// Main App with Providers
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

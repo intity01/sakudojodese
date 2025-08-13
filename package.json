@@ -1,7 +1,7 @@
 {
-  "name": "saku-dojo-v2",
-  "version": "2.0.0",
-  "description": "Language learning application for English and Japanese with CEFR and JLPT curricula",
+  "name": "sakulang",
+  "version": "1.0.0",
+  "description": "SAKULANG - Free Language Learning Platform with Multi-language Support, Analytics & Beautiful UI",
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -20,7 +20,8 @@
     "format:check": "prettier --check src/**/*.{ts,tsx}",
     "deploy:netlify": "npm run build && npx netlify deploy --prod --dir=dist",
     "deploy:vercel": "npm run build && npx vercel --prod",
-    "deploy:surge": "npm run build && npx surge dist"
+    "deploy:surge": "npm run build && npx surge dist",
+    "deploy:github": "npm run build && npx gh-pages -d dist"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -40,6 +41,7 @@
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "gh-pages": "^6.3.0",
     "jsdom": "^23.0.1",
     "postcss": "^8.4.32",
     "prettier": "^3.1.0",
