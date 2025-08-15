@@ -419,6 +419,9 @@ export class DojoEngine {
 
     this.currentSession.currentIndex++;
 
+    // Auto-save session state
+    this.saveSessionState();
+
     return {
       success: true,
       currentIndex: this.currentSession.currentIndex,
@@ -462,6 +465,9 @@ export class DojoEngine {
 
     this.currentSession.currentIndex--;
 
+    // Auto-save session state
+    this.saveSessionState();
+
     return {
       success: true,
       currentIndex: this.currentSession.currentIndex,
@@ -497,7 +503,8 @@ export class DojoEngine {
     answers[currentIndex] = null;
     correct[currentIndex] = false;
 
-    // Don't auto-advance - let the UI handle navigation
+    // Auto-save session state
+    this.saveSessionState();
 
     return {
       success: true,
@@ -543,6 +550,9 @@ export class DojoEngine {
     const previousIndex = this.currentSession.currentIndex;
     this.currentSession.currentIndex = index;
 
+    // Auto-save session state
+    this.saveSessionState();
+
     return {
       success: true,
       currentIndex: index,
@@ -564,6 +574,173 @@ export class DojoEngine {
     if (!this.currentSession) return false;
 
     return this.currentSession.currentIndex > 0;
+  }
+
+  // Advanced Navigation Methods
+  goToFirstQuestion(): NavigationResult {
+    return this.jumpToQuestion(0);
+  }
+
+  goToLastQuestion(): NavigationResult {
+    if (!this.currentSession) {
+      return {
+        success: false,
+        error: 'No active session',
+        currentIndex: -1,
+        totalQuestions: 0
+      };
+    }
+
+    return this.jumpToQuestion(this.currentSession.questions.length - 1);
+  }
+
+  goToNextUnanswered(): NavigationResult {
+    if (!this.currentSession) {
+      return {
+        success: false,
+        error: 'No active session',
+        currentIndex: -1,
+        totalQuestions: 0
+      };
+    }
+
+    const { answers, currentIndex } = this.currentSession;
+    
+    // Find next unanswered question starting from current position
+    for (let i = currentIndex + 1; i < answers.length; i++) {
+      if (answers[i] === null) {
+        return this.jumpToQuestion(i);
+      }
+    }
+
+    // If no unanswered questions after current, check from beginning
+    for (let i = 0; i < currentIndex; i++) {
+      if (answers[i] === null) {
+        return this.jumpToQuestion(i);
+      }
+    }
+
+    return {
+      success: false,
+      error: 'No unanswered questions found',
+      currentIndex: this.currentSession.currentIndex,
+      totalQuestions: this.currentSession.questions.length,
+      allAnswered: true
+    };
+  }
+
+  goToPreviousUnanswered(): NavigationResult {
+    if (!this.currentSession) {
+      return {
+        success: false,
+        error: 'No active session',
+        currentIndex: -1,
+        totalQuestions: 0
+      };
+    }
+
+    const { answers, currentIndex } = this.currentSession;
+    
+    // Find previous unanswered question starting from current position
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      if (answers[i] === null) {
+        return this.jumpToQuestion(i);
+      }
+    }
+
+    // If no unanswered questions before current, check from end
+    for (let i = answers.length - 1; i > currentIndex; i--) {
+      if (answers[i] === null) {
+        return this.jumpToQuestion(i);
+      }
+    }
+
+    return {
+      success: false,
+      error: 'No unanswered questions found',
+      currentIndex: this.currentSession.currentIndex,
+      totalQuestions: this.currentSession.questions.length,
+      allAnswered: true
+    };
+  }
+
+  // Question Status Methods
+  getQuestionStatus(index?: number): {
+    index: number;
+    isAnswered: boolean;
+    isCorrect: boolean | null;
+    answer: any;
+    isSkipped: boolean;
+    isCurrent: boolean;
+  } | null {
+    if (!this.currentSession) return null;
+
+    const questionIndex = index ?? this.currentSession.currentIndex;
+    const { answers, correct, currentIndex } = this.currentSession;
+
+    if (questionIndex < 0 || questionIndex >= answers.length) return null;
+
+    const answer = answers[questionIndex];
+    const isAnswered = answer !== null;
+    const isSkipped = answer === null && questionIndex < currentIndex;
+
+    return {
+      index: questionIndex,
+      isAnswered,
+      isCorrect: isAnswered ? correct[questionIndex] : null,
+      answer,
+      isSkipped,
+      isCurrent: questionIndex === currentIndex
+    };
+  }
+
+  getAllQuestionStatuses(): Array<{
+    index: number;
+    isAnswered: boolean;
+    isCorrect: boolean | null;
+    answer: any;
+    isSkipped: boolean;
+    isCurrent: boolean;
+  }> {
+    if (!this.currentSession) return [];
+
+    return this.currentSession.questions.map((_, index) => 
+      this.getQuestionStatus(index)!
+    );
+  }
+
+  getUnansweredQuestions(): number[] {
+    if (!this.currentSession) return [];
+
+    return this.currentSession.answers
+      .map((answer, index) => answer === null ? index : -1)
+      .filter(index => index !== -1);
+  }
+
+  getAnsweredQuestions(): number[] {
+    if (!this.currentSession) return [];
+
+    return this.currentSession.answers
+      .map((answer, index) => answer !== null ? index : -1)
+      .filter(index => index !== -1);
+  }
+
+  getCorrectQuestions(): number[] {
+    if (!this.currentSession) return [];
+
+    return this.currentSession.correct
+      .map((isCorrect, index) => isCorrect ? index : -1)
+      .filter(index => index !== -1);
+  }
+
+  getIncorrectQuestions(): number[] {
+    if (!this.currentSession) return [];
+
+    return this.currentSession.answers
+      .map((answer, index) => 
+        answer !== null && !this.currentSession!.correct[index] ? index : -1
+      )
+      .filter(index => index !== -1);
   }
 
   // Enhanced Session Completion Logic
@@ -822,6 +999,167 @@ export class DojoEngine {
   getSessionById(sessionId: string): SessionData | null {
     return this.sessionHistory.find(session => session.sessionId === sessionId) || null;
   }
+
+  // Session State Persistence
+  private saveSessionState(): void {
+    if (!this.currentSession) return;
+
+    try {
+      const sessionData = {
+        ...this.currentSession,
+        // Convert dates to ISO strings for JSON serialization
+        startTime: this.currentSession.startTime.toISOString(),
+        pausedTime: this.currentSession.pausedTime?.toISOString(),
+        lastSaved: new Date().toISOString()
+      };
+
+      localStorage.setItem('dojoEngine_currentSession', JSON.stringify(sessionData));
+    } catch (error) {
+      console.warn('[DojoEngine] Failed to save session state:', error);
+    }
+  }
+
+  loadSessionState(): boolean {
+    try {
+      const savedData = localStorage.getItem('dojoEngine_currentSession');
+      if (!savedData) return false;
+
+      const sessionData = JSON.parse(savedData);
+      
+      // Restore dates from ISO strings
+      sessionData.startTime = new Date(sessionData.startTime);
+      if (sessionData.pausedTime) {
+        sessionData.pausedTime = new Date(sessionData.pausedTime);
+      }
+
+      // Validate session data integrity
+      if (!this.validateSessionData(sessionData)) {
+        console.warn('[DojoEngine] Invalid session data found, clearing...');
+        this.clearStoredSession();
+        return false;
+      }
+
+      this.currentSession = sessionData;
+      console.log('[DojoEngine] Session state loaded successfully');
+      return true;
+    } catch (error) {
+      console.warn('[DojoEngine] Failed to load session state:', error);
+      this.clearStoredSession();
+      return false;
+    }
+  }
+
+  private validateSessionData(data: any): boolean {
+    if (!data || typeof data !== 'object') return false;
+    
+    const requiredFields = ['config', 'questions', 'currentIndex', 'answers', 'correct', 'startTime', 'state', 'sessionId'];
+    
+    for (const field of requiredFields) {
+      if (!(field in data)) {
+        console.warn(`[DojoEngine] Missing required field: ${field}`);
+        return false;
+      }
+    }
+
+    // Validate arrays have consistent lengths
+    if (data.questions.length !== data.answers.length || 
+        data.questions.length !== data.correct.length) {
+      console.warn('[DojoEngine] Inconsistent array lengths in session data');
+      return false;
+    }
+
+    // Validate current index is within bounds
+    if (data.currentIndex < 0 || data.currentIndex >= data.questions.length) {
+      console.warn('[DojoEngine] Current index out of bounds');
+      return false;
+    }
+
+    return true;
+  }
+
+  clearStoredSession(): void {
+    try {
+      localStorage.removeItem('dojoEngine_currentSession');
+    } catch (error) {
+      console.warn('[DojoEngine] Failed to clear stored session:', error);
+    }
+  }
+
+  hasStoredSession(): boolean {
+    try {
+      return localStorage.getItem('dojoEngine_currentSession') !== null;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  getStoredSessionInfo(): { sessionId: string; lastSaved: string; config: SessionConfig } | null {
+    try {
+      const savedData = localStorage.getItem('dojoEngine_currentSession');
+      if (!savedData) return null;
+
+      const sessionData = JSON.parse(savedData);
+      return {
+        sessionId: sessionData.sessionId,
+        lastSaved: sessionData.lastSaved || sessionData.startTime,
+        config: sessionData.config
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Session Recovery
+  recoverSession(): { success: boolean; error?: string; sessionInfo?: any } {
+    if (!this.hasStoredSession()) {
+      return {
+        success: false,
+        error: 'No stored session found'
+      };
+    }
+
+    const sessionInfo = this.getStoredSessionInfo();
+    if (!sessionInfo) {
+      return {
+        success: false,
+        error: 'Invalid stored session data'
+      };
+    }
+
+    const loadSuccess = this.loadSessionState();
+    if (!loadSuccess) {
+      return {
+        success: false,
+        error: 'Failed to load session state'
+      };
+    }
+
+    return {
+      success: true,
+      sessionInfo
+    };
+  }
+
+  // Auto-save functionality
+  enableAutoSave(intervalMs: number = 30000): void {
+    // Clear existing interval if any
+    this.disableAutoSave();
+
+    this.autoSaveInterval = setInterval(() => {
+      if (this.currentSession && this.isSessionActive()) {
+        this.saveSessionState();
+      }
+    }, intervalMs);
+  }
+
+  disableAutoSave(): void {
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval);
+      this.autoSaveInterval = undefined;
+    }
+  }
+
+  private autoSaveInterval?: NodeJS.Timeout;
 
   // Helper Methods
 

@@ -22,13 +22,20 @@ setTimeout(() => {
 
 // Components
 import Splash from './components/Splash';
+import AppBar from './components/AppBar';
+import TabBar from './components/TabBar';
+import HomeScreen from './components/HomeScreen';
+import PlanScreen from './components/PlanScreen';
+import FocusScreen from './components/FocusScreen';
+import LearnScreen from './components/LearnScreen';
 import StartScreen from './components/StartScreen';
 import QuestionScreen from './components/QuestionScreen';
 import ResultScreen from './components/ResultScreen';
 import ProgressScreen from './components/ProgressScreen';
 import SettingsScreen from './components/SettingsScreen';
+import LeaderboardTestPage from './pages/LeaderboardTestPage';
 
-type AppState = 'boot' | 'start' | 'quiz' | 'result' | 'progress' | 'settings';
+type AppState = 'boot' | 'home' | 'plan' | 'focus' | 'learn' | 'quiz' | 'result' | 'settings' | 'leaderboard-test';
 
 const AppContent = () => {
   const [appState, setAppState] = useState<AppState>('boot');
@@ -99,7 +106,7 @@ const AppContent = () => {
     if (config.mode === 'Quiz') {
       success = engine.startQuizSession(config.track, config.framework, config.level, config.questionCount);
     } else if (config.mode === 'Study') {
-      success = engine.startStudySession(config.track, config.framework, config.level, config.questionCount);
+      success = engine.startStudySession(config.track, config.framework, config.level);
     } else {
       // Fallback to generic method for other modes
       success = engine.startSession(config);
@@ -116,18 +123,26 @@ const AppContent = () => {
     if (!engine) return;
     const result = engine.finishSession();
     if (result) {
-      setCurrentProgress(result);
-      saveProgress(result);
+      if (result.progressEntry) {
+        setCurrentProgress(result.progressEntry);
+        saveProgress(result.progressEntry);
+      }
       setAppState('result');
     }
   };
 
-  const resetToStart = () => {
+  const resetToHome = () => {
     if (!engine) return;
     engine.resetSession();
     setCurrentProgress(null);
-    setAppState('start');
+    setAppState('home');
   };
+
+  // Navigation functions for new 4-tab structure
+  const navigateToHome = () => setAppState('home');
+  const navigateToPlan = () => setAppState('plan');
+  const navigateToFocus = () => setAppState('focus');
+  const navigateToLearn = () => setAppState('learn');
 
   const showProgress = () => {
     setAppState('progress');
@@ -137,18 +152,32 @@ const AppContent = () => {
     setAppState('settings');
   };
 
+  const showLeaderboardTest = () => {
+    setAppState('leaderboard-test');
+  };
+
+  // Quick Add functionality (placeholder)
+  const handleQuickAdd = () => {
+    console.log('Quick Add clicked - to be implemented');
+  };
+
+  // Search functionality (placeholder)
+  const handleSearch = () => {
+    console.log('Search clicked - to be implemented');
+  };
+
   const handleSplashComplete = () => {
-    // Transition from boot to start
-    setAppState('start');
+    // Transition from boot to home (new default)
+    setAppState('home');
     analytics.track('splash_completed', {
       duration: Date.now() - (window as any).__appStartTime || 0
     });
   };
 
   const handleBootError = () => {
-    // Fallback: skip to start if boot fails
-    console.warn('Boot sequence failed, falling back to start screen');
-    setAppState('start');
+    // Fallback: skip to home if boot fails
+    console.warn('Boot sequence failed, falling back to home screen');
+    setAppState('home');
     analytics.track('boot_error', {
       timestamp: Date.now()
     });
@@ -211,8 +240,49 @@ const AppContent = () => {
         </div>
       </header>
 
+      {/* AppBar - always visible except in boot/quiz/result */}
+      {!['boot', 'quiz', 'result'].includes(appState) && (
+        <AppBar 
+          onQuickAdd={handleQuickAdd}
+          onSearch={handleSearch}
+          onSettings={showSettings}
+        />
+      )}
+
       <main className="app-main">
         <div className="container">
+          {/* Main 4-tab navigation screens */}
+          {appState === 'home' && (
+            <HomeScreen 
+              onStartQuickSession={() => setAppState('learn')}
+              onViewProgress={showProgress}
+              onShowLeaderboardTest={showLeaderboardTest}
+            />
+          )}
+          
+          {appState === 'plan' && (
+            <PlanScreen />
+          )}
+          
+          {appState === 'focus' && (
+            <FocusScreen />
+          )}
+          
+          {appState === 'learn' && (
+            <LearnScreen 
+              onStartStudySession={(itemId, mode) => {
+                console.log(`Starting study session: ${itemId} in ${mode} mode`);
+                // TODO: Integrate with DojoEngine for study sessions
+                analytics.track('study_session_started', {
+                  itemId,
+                  mode,
+                  timestamp: Date.now()
+                });
+              }}
+            />
+          )}
+
+          {/* Legacy screens - keep for backward compatibility */}
           {appState === 'start' && (
             <StartScreen 
               onStartSession={startSession}
@@ -225,14 +295,14 @@ const AppContent = () => {
             <QuestionScreen 
               engine={engine}
               onFinish={finishSession}
-              onExit={resetToStart}
+              onExit={resetToHome}
             />
           )}
           
           {appState === 'result' && currentProgress && (
             <ResultScreen 
               progress={currentProgress}
-              onRestart={resetToStart}
+              onRestart={resetToHome}
               onShowProgress={showProgress}
             />
           )}
@@ -240,7 +310,7 @@ const AppContent = () => {
           {appState === 'progress' && (
             <ProgressScreen 
               progressHistory={progressHistory}
-              onBack={resetToStart}
+              onBack={resetToHome}
               onClearHistory={() => {
                 setProgressHistory([]);
                 localStorage.removeItem('saku-dojo-progress');
@@ -250,11 +320,23 @@ const AppContent = () => {
           
           {appState === 'settings' && (
             <SettingsScreen 
-              onBack={resetToStart}
+              onBack={resetToHome}
             />
+          )}
+
+          {appState === 'leaderboard-test' && (
+            <LeaderboardTestPage />
           )}
         </div>
       </main>
+
+      {/* TabBar - show for main 4 tabs */}
+      {['home', 'plan', 'focus', 'learn'].includes(appState) && (
+        <TabBar 
+          activeTab={appState as 'home' | 'plan' | 'focus' | 'learn'}
+          onTabChange={(tab) => setAppState(tab)}
+        />
+      )}
 
       <footer className="app-footer">
         <div className="container">

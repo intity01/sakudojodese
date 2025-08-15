@@ -21,10 +21,12 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/saku-dojo-v2/' : '/',
   build: {
     target: 'es2020',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
+          data: ['./src/data/questionBank'],
         },
       },
     },

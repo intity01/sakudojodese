@@ -1,417 +1,304 @@
-import { useState } from 'react';
-import { useAuth } from '../services/auth';
-import { useNotifications } from '../services/notifications';
-import { useLocation } from '../services/location';
-import { useAnalytics } from '../services/analytics';
-import { useTranslation } from '../hooks/useTranslation';
-import { useTheme } from '../contexts/ThemeContext';
-import ThemeSelector from './ThemeSelector';
-import AnalyticsDashboard from './AnalyticsDashboard';
+import React, { useState, useEffect } from 'react';
+import { ThemeSelector } from './ThemeSelector';
 
 interface SettingsScreenProps {
   onBack: () => void;
 }
 
-const SettingsScreen = ({ onBack }: SettingsScreenProps) => {
-  const { user, updatePreferences, exportUserData, deleteAccount } = useAuth();
-  const { settings: notifSettings, updateSettings: updateNotifSettings, requestPermission, testNotification } = useNotifications();
-  const { settings: locationSettings, updateSettings: updateLocationSettings, requestPermission: requestLocationPermission } = useLocation();
-  const { isEnabled: analyticsEnabled, setEnabled: setAnalyticsEnabled } = useAnalytics();
-  const { t, language } = useTranslation();
-  const { setLanguage } = useTheme();
-  
-  const [activeTab, setActiveTab] = useState<'appearance' | 'notifications' | 'privacy' | 'analytics' | 'about'>('appearance');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+interface Settings {
+  enableDictionary: boolean;
+  enableCustomQuestions: boolean;
+  enableAnimations: boolean;
+  enableSounds: boolean;
+  autoSave: boolean;
+  showTips: boolean;
+  language: 'th' | 'en';
+  theme: 'system' | 'light' | 'dark';
+}
 
-  const handleLanguageChange = (newLanguage: 'en' | 'th' | 'ja') => {
-    setLanguage(newLanguage);
-    if (user) {
-      updatePreferences({ language: newLanguage });
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
+  const [settings, setSettings] = useState<Settings>({
+    enableDictionary: true,
+    enableCustomQuestions: true,
+    enableAnimations: true,
+    enableSounds: false,
+    autoSave: true,
+    showTips: true,
+    language: 'th',
+    theme: 'system'
+  });
+
+  // Load settings from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('sakulang-settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    }
+  }, []);
+
+  // Save settings to localStorage
+  const saveSettings = (newSettings: Settings) => {
+    setSettings(newSettings);
+    localStorage.setItem('sakulang-settings', JSON.stringify(newSettings));
+  };
+
+  const handleSettingChange = (key: keyof Settings, value: any) => {
+    const newSettings = { ...settings, [key]: value };
+    saveSettings(newSettings);
+  };
+
+  const resetSettings = () => {
+    if (confirm('คุณแน่ใจหรือไม่ที่จะรีเซ็ตการตั้งค่าทั้งหมด?')) {
+      const defaultSettings: Settings = {
+        enableDictionary: true,
+        enableCustomQuestions: true,
+        enableAnimations: true,
+        enableSounds: false,
+        autoSave: true,
+        showTips: true,
+        language: 'th',
+        theme: 'system'
+      };
+      saveSettings(defaultSettings);
     }
   };
 
-  const handleExportData = async () => {
-    try {
-      const data = await exportUserData();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sakulang-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to export data:', error);
-    }
+  const exportSettings = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      settings,
+      version: '2.0'
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sakulang-settings-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  const handleDeleteAccount = async () => {
-    if (showDeleteConfirm) {
-      await deleteAccount();
-      onBack();
-    } else {
-      setShowDeleteConfirm(true);
-      setTimeout(() => setShowDeleteConfirm(false), 10000); // Auto-cancel after 10s
-    }
-  };
+  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const tabs = [
-    { id: 'appearance', name: t('appearance'), icon: '🎨' },
-    { id: 'notifications', name: t('notifications'), icon: '🔔' },
-    { id: 'privacy', name: t('privacy'), icon: '🔒' },
-    { id: 'analytics', name: t('analytics'), icon: '📊' },
-    { id: 'about', name: t('about'), icon: 'ℹ️' }
-  ] as const;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.settings) {
+          saveSettings({ ...settings, ...data.settings });
+          alert('นำเข้าการตั้งค่าสำเร็จ!');
+        }
+      } catch (error) {
+        alert('ไฟล์การตั้งค่าไม่ถูกต้อง');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
-    <div className="settings-screen animate-fade-in">
+    <div className="settings-screen">
       <div className="settings-header">
-        <button onClick={onBack} className="btn btn-secondary btn-sm">
-          ← {t('back')}
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm back-btn"
+          onClick={onBack}
+        >
+          ← กลับ
         </button>
-        <h1 className="text-2xl font-bold mt-4 mb-2">{t('settings')}</h1>
-        <p className="text-gray-600 mb-6">Customize your SAKULANG experience</p>
+        
+        <h1>⚙️ การตั้งค่า</h1>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="settings-tabs">
-        <div className="tab-list">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-            >
-              <span className="tab-icon">{tab.icon}</span>
-              <span className="tab-name">{tab.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
       <div className="settings-content">
-        {/* Appearance Tab */}
-        {activeTab === 'appearance' && (
-          <div className="tab-content animate-slide-in">
-            <div className="card">
-              <div className="card-header">
-                <h3 className="text-lg font-semibold">🎨 {t('appearance')}</h3>
-              </div>
-              <div className="card-body">
-                <ThemeSelector />
-                
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">🌍 {t('language')}</h4>
-                  <div className="language-selector">
-                    {[
-                      { code: 'en', name: '🇺🇸 English', native: 'English' },
-                      { code: 'th', name: '🇹🇭 ไทย', native: 'ภาษาไทย' },
-                      { code: 'ja', name: '🇯🇵 日本語', native: '日本語' }
-                    ].map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang.code as any)}
-                        className={`language-option ${language === lang.code ? 'active' : ''}`}
-                      >
-                        <span className="language-flag">{lang.name.split(' ')[0]}</span>
-                        <div className="language-names">
-                          <div className="language-english">{lang.name.split(' ')[1]}</div>
-                          <div className="language-native">{lang.native}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {/* Learning Settings */}
+        <div className="settings-section">
+          <h2>🎓 การเรียนรู้</h2>
+          
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">เปิดใช้พจนานุกรม</label>
+              <p className="setting-description">แสดงความหมายคำเมื่อเลื่อนเมาส์ผ่าน</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.enableDictionary}
+                onChange={(e) => handleSettingChange('enableDictionary', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">เปิดใช้คำถามที่กำหนดเอง</label>
+              <p className="setting-description">รวมคำถามที่คุณสร้างเองในแบบทดสอบ</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.enableCustomQuestions}
+                onChange={(e) => handleSettingChange('enableCustomQuestions', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">แสดงคำแนะนำ</label>
+              <p className="setting-description">แสดงคำแนะนำการใช้งานสำหรับผู้ใช้ใหม่</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.showTips}
+                onChange={(e) => handleSettingChange('showTips', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        {/* Interface Settings */}
+        <div className="settings-section">
+          <h2>🎨 หน้าตา</h2>
+          
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">ธีม</label>
+              <p className="setting-description">เลือกธีมสีของแอปพลิเคชัน</p>
+            </div>
+            <ThemeSelector />
+          </div>
+
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">เปิดใช้แอนิเมชัน</label>
+              <p className="setting-description">แสดงเอฟเฟกต์การเคลื่อนไหว</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.enableAnimations}
+                onChange={(e) => handleSettingChange('enableAnimations', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">ภาษาของแอป</label>
+              <p className="setting-description">เลือกภาษาที่ใช้ในส่วนติดต่อผู้ใช้</p>
+            </div>
+            <select
+              value={settings.language}
+              onChange={(e) => handleSettingChange('language', e.target.value)}
+              className="setting-select"
+            >
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="en">🇺🇸 English</option>
+            </select>
+          </div>
+        </div>
+
+        {/* System Settings */}
+        <div className="settings-section">
+          <h2>💾 ระบบ</h2>
+          
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">บันทึกอัตโนมัติ</label>
+              <p className="setting-description">บันทึกความคืบหน้าโดยอัตโนมัติ</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.autoSave}
+                onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div className="setting-item">
+            <div className="setting-info">
+              <label className="setting-label">เปิดใช้เสียง</label>
+              <p className="setting-description">เล่นเสียงเมื่อตอบถูกหรือผิด</p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={settings.enableSounds}
+                onChange={(e) => handleSettingChange('enableSounds', e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        {/* Data Management */}
+        <div className="settings-section">
+          <h2>📊 จัดการข้อมูล</h2>
+          
+          <div className="setting-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={exportSettings}
+            >
+              📤 ส่งออกการตั้งค่า
+            </button>
+            
+            <label className="btn btn-secondary file-input-label">
+              📥 นำเข้าการตั้งค่า
+              <input
+                type="file"
+                accept=".json"
+                onChange={importSettings}
+                style={{ display: 'none' }}
+              />
+            </label>
+            
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={resetSettings}
+            >
+              🔄 รีเซ็ตการตั้งค่า
+            </button>
+          </div>
+        </div>
+
+        {/* About */}
+        <div className="settings-section">
+          <h2>ℹ️ เกี่ยวกับ</h2>
+          
+          <div className="about-info">
+            <div className="app-info">
+              <h3>🎌 SAKULANG</h3>
+              <p>แพลตฟอร์มเรียนภาษาฟรี</p>
+              <p>เวอร์ชัน 2.0</p>
+            </div>
+            
+            <div className="links">
+              <a href="#" className="link-btn">📚 คู่มือการใช้งาน</a>
+              <a href="#" className="link-btn">🐛 รายงานปัญหา</a>
+              <a href="#" className="link-btn">💝 สนับสนุนโครงการ</a>
             </div>
           </div>
-        )}
-
-        {/* Notifications Tab */}
-        {activeTab === 'notifications' && (
-          <div className="tab-content animate-slide-in">
-            <div className="card">
-              <div className="card-header">
-                <h3 className="text-lg font-semibold">🔔 {t('notifications')}</h3>
-              </div>
-              <div className="card-body">
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <div className="setting-title">Enable Notifications</div>
-                    <div className="setting-description">
-                      Get reminders and achievement notifications
-                    </div>
-                  </div>
-                  <div className="setting-control">
-                    <button
-                      onClick={requestPermission}
-                      className={`toggle-button ${notifSettings.enabled ? 'active' : ''}`}
-                      disabled={notifSettings.enabled}
-                    >
-                      {notifSettings.enabled ? 'Enabled' : 'Enable'}
-                    </button>
-                  </div>
-                </div>
-
-                {notifSettings.enabled && (
-                  <>
-                    <div className="setting-item">
-                      <div className="setting-info">
-                        <div className="setting-title">{t('dailyReminder')}</div>
-                        <div className="setting-description">
-                          Daily learning reminder at your preferred time
-                        </div>
-                      </div>
-                      <div className="setting-control">
-                        <input
-                          type="checkbox"
-                          checked={notifSettings.dailyReminder}
-                          onChange={(e) => updateNotifSettings({ dailyReminder: e.target.checked })}
-                          className="checkbox"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="setting-item">
-                      <div className="setting-info">
-                        <div className="setting-title">{t('studyTime')}</div>
-                        <div className="setting-description">
-                          When would you like to be reminded?
-                        </div>
-                      </div>
-                      <div className="setting-control">
-                        <input
-                          type="time"
-                          value={notifSettings.studyTime}
-                          onChange={(e) => updateNotifSettings({ studyTime: e.target.value })}
-                          className="time-input"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="setting-item">
-                      <div className="setting-info">
-                        <div className="setting-title">{t('achievements')}</div>
-                        <div className="setting-description">
-                          Get notified when you unlock achievements
-                        </div>
-                      </div>
-                      <div className="setting-control">
-                        <input
-                          type="checkbox"
-                          checked={notifSettings.achievements}
-                          onChange={(e) => updateNotifSettings({ achievements: e.target.checked })}
-                          className="checkbox"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <button
-                        onClick={testNotification}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        🧪 Test Notification
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Privacy Tab */}
-        {activeTab === 'privacy' && (
-          <div className="tab-content animate-slide-in">
-            <div className="card">
-              <div className="card-header">
-                <h3 className="text-lg font-semibold">🔒 {t('privacy')}</h3>
-              </div>
-              <div className="card-body">
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <div className="setting-title">Analytics & Usage Data</div>
-                    <div className="setting-description">
-                      Help improve SAKULANG by sharing anonymous usage data
-                    </div>
-                  </div>
-                  <div className="setting-control">
-                    <input
-                      type="checkbox"
-                      checked={analyticsEnabled}
-                      onChange={(e) => setAnalyticsEnabled(e.target.checked)}
-                      className="checkbox"
-                    />
-                  </div>
-                </div>
-
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <div className="setting-title">Location Services</div>
-                    <div className="setting-description">
-                      Share your location for regional statistics (optional)
-                    </div>
-                  </div>
-                  <div className="setting-control">
-                    <input
-                      type="checkbox"
-                      checked={locationSettings.enabled}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          requestLocationPermission();
-                        } else {
-                          updateLocationSettings({ enabled: false });
-                        }
-                      }}
-                      className="checkbox"
-                    />
-                  </div>
-                </div>
-
-                {locationSettings.enabled && (
-                  <>
-                    <div className="setting-item">
-                      <div className="setting-info">
-                        <div className="setting-title">Share Country</div>
-                        <div className="setting-description">
-                          Include your country in statistics
-                        </div>
-                      </div>
-                      <div className="setting-control">
-                        <input
-                          type="checkbox"
-                          checked={locationSettings.shareCountry}
-                          onChange={(e) => updateLocationSettings({ shareCountry: e.target.checked })}
-                          className="checkbox"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="setting-item">
-                      <div className="setting-info">
-                        <div className="setting-title">Share City</div>
-                        <div className="setting-description">
-                          Include your city in statistics
-                        </div>
-                      </div>
-                      <div className="setting-control">
-                        <input
-                          type="checkbox"
-                          checked={locationSettings.shareCity}
-                          onChange={(e) => updateLocationSettings({ shareCity: e.target.checked })}
-                          className="checkbox"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div className="privacy-actions mt-6">
-                  <button
-                    onClick={handleExportData}
-                    className="btn btn-secondary mr-3"
-                  >
-                    📥 Export My Data
-                  </button>
-                  
-                  <button
-                    onClick={handleDeleteAccount}
-                    className={`btn ${showDeleteConfirm ? 'btn-danger' : 'btn-secondary'}`}
-                  >
-                    {showDeleteConfirm ? '⚠️ Confirm Delete' : '🗑️ Delete Account'}
-                  </button>
-                  
-                  {showDeleteConfirm && (
-                    <p className="text-sm text-red-600 mt-2">
-                      ⚠️ This will permanently delete all your data. Click again to confirm.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="tab-content animate-slide-in">
-            <AnalyticsDashboard />
-          </div>
-        )}
-
-        {/* About Tab */}
-        {activeTab === 'about' && (
-          <div className="tab-content animate-slide-in">
-            <div className="card">
-              <div className="card-header">
-                <h3 className="text-lg font-semibold">ℹ️ {t('about')}</h3>
-              </div>
-              <div className="card-body">
-                <div className="about-content">
-                  <div className="app-info">
-                    <div className="app-logo">🎌</div>
-                    <h2 className="app-name">SAKULANG</h2>
-                    <p className="app-version">Version 1.0.0</p>
-                    <p className="app-description">
-                      Free language learning platform with beautiful UI, 
-                      analytics, and smart notifications.
-                    </p>
-                  </div>
-
-                  <div className="features-list">
-                    <h4 className="font-semibold mb-3">✨ Features</h4>
-                    <ul className="feature-items">
-                      <li>🌍 Multi-language support (EN, TH, JP)</li>
-                      <li>📚 Multiple frameworks (Classic, CEFR, JLPT)</li>
-                      <li>🎯 3 question types (MCQ, Typing, Open)</li>
-                      <li>📱 Mobile-friendly PWA</li>
-                      <li>💾 Offline support</li>
-                      <li>📊 Progress tracking & analytics</li>
-                      <li>🔔 Smart notifications</li>
-                      <li>🎨 Beautiful themes</li>
-                      <li>🔒 Privacy-focused</li>
-                    </ul>
-                  </div>
-
-                  <div className="links-section">
-                    <h4 className="font-semibold mb-3">🔗 Links</h4>
-                    <div className="link-buttons">
-                      <a 
-                        href="https://github.com/intity01/saku-dojo-v2" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        📂 Source Code
-                      </a>
-                      <a 
-                        href="https://intity01.github.io/saku-dojo-v2/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        🌐 Website
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="credits">
-                    <p className="text-sm text-gray-600 mt-6">
-                      Made with ❤️ for language learners worldwide
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      © 2024 SAKULANG - Open Source Language Learning Platform
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

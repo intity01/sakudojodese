@@ -1,38 +1,22 @@
-// SAKULANG Authentication Service
-// Secure user authentication with privacy focus
+// Simple authentication service for guest users
+// No external authentication required
 
 interface User {
   id: string;
-  email?: string;
   username: string;
-  avatar?: string;
+  type: 'guest' | 'registered';
   createdAt: string;
-  lastLogin: string;
-  preferences: {
-    theme: string;
-    language: string;
-    notifications: boolean;
-    analytics: boolean;
-  };
-  stats: {
-    totalSessions: number;
-    totalQuestions: number;
-    averageScore: number;
-    streakDays: number;
-  };
 }
 
 interface AuthState {
   user: User | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 class AuthService {
   private state: AuthState = {
     user: null,
-    isAuthenticated: false,
-    isLoading: true
+    isLoading: false
   };
 
   private listeners: ((state: AuthState) => void)[] = [];
@@ -41,200 +25,94 @@ class AuthService {
     this.loadUser();
   }
 
-  // Subscribe to auth state changes
-  subscribe(listener: (state: AuthState) => void): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
+  private loadUser() {
+    try {
+      const saved = localStorage.getItem('sakulang-user');
+      if (saved) {
+        const user = JSON.parse(saved);
+        this.state.user = user;
+        this.notifyListeners();
+      }
+    } catch (error) {
+      console.warn('Failed to load user data:', error);
+    }
   }
 
-  private notify(): void {
+  private saveUser(user: User) {
+    try {
+      localStorage.setItem('sakulang-user', JSON.stringify(user));
+      this.state.user = user;
+      this.notifyListeners();
+    } catch (error) {
+      console.warn('Failed to save user data:', error);
+    }
+  }
+
+  private notifyListeners() {
     this.listeners.forEach(listener => listener(this.state));
   }
 
-  private async loadUser(): Promise<void> {
-    try {
-      const savedUser = localStorage.getItem('sakulang-user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        this.state = {
-          user,
-          isAuthenticated: true,
-          isLoading: false
-        };
-      } else {
-        this.state.isLoading = false;
-      }
-    } catch (error) {
-      console.error('Failed to load user:', error);
-      this.state.isLoading = false;
-    }
-    this.notify();
-  }
-
-  // Guest/Anonymous Login
-  async loginAsGuest(username?: string): Promise<User> {
-    const user: User = {
-      id: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      username: username || `Guest_${Math.random().toString(36).substr(2, 6)}`,
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      preferences: {
-        theme: 'default',
-        language: 'en',
-        notifications: true,
-        analytics: false
-      },
-      stats: {
-        totalSessions: 0,
-        totalQuestions: 0,
-        averageScore: 0,
-        streakDays: 0
-      }
+  loginAsGuest(): User {
+    const guestUser: User = {
+      id: `guest_${Date.now()}`,
+      username: `ผู้เรียน${Math.floor(Math.random() * 1000)}`,
+      type: 'guest',
+      createdAt: new Date().toISOString()
     };
 
-    this.state = {
-      user,
-      isAuthenticated: true,
-      isLoading: false
-    };
-
-    localStorage.setItem('sakulang-user', JSON.stringify(user));
-    this.notify();
-    return user;
+    this.saveUser(guestUser);
+    return guestUser;
   }
 
-  // Email/Password Registration (Future)
-  async register(_email: string, _password: string, _username: string): Promise<User> {
-    // This would integrate with your backend
-    throw new Error('Email registration not implemented yet');
-  }
-
-  // Email/Password Login (Future)
-  async login(_email: string, _password: string): Promise<User> {
-    // This would integrate with your backend
-    throw new Error('Email login not implemented yet');
-  }
-
-  // Social Login (Future)
-  async loginWithGoogle(): Promise<User> {
-    throw new Error('Google login not implemented yet');
-  }
-
-  async loginWithApple(): Promise<User> {
-    throw new Error('Apple login not implemented yet');
-  }
-
-  // Logout
-  async logout(): Promise<void> {
-    this.state = {
-      user: null,
-      isAuthenticated: false,
-      isLoading: false
-    };
-
+  logout() {
     localStorage.removeItem('sakulang-user');
-    this.notify();
+    this.state.user = null;
+    this.notifyListeners();
   }
 
-  // Update User
-  async updateUser(updates: Partial<User>): Promise<User> {
-    if (!this.state.user) {
-      throw new Error('No user logged in');
-    }
+  getCurrentUser(): User | null {
+    return this.state.user;
+  }
 
-    const updatedUser = {
-      ...this.state.user,
-      ...updates,
-      lastLogin: new Date().toISOString()
+  isAuthenticated(): boolean {
+    return this.state.user !== null;
+  }
+
+  subscribe(listener: (state: AuthState) => void) {
+    this.listeners.push(listener);
+    
+    // Return unsubscribe function
+    return () => {
+      const index = this.listeners.indexOf(listener);
+      if (index > -1) {
+        this.listeners.splice(index, 1);
+      }
     };
-
-    this.state.user = updatedUser;
-    localStorage.setItem('sakulang-user', JSON.stringify(updatedUser));
-    this.notify();
-    return updatedUser;
   }
 
-  // Update Preferences
-  async updatePreferences(preferences: Partial<User['preferences']>): Promise<void> {
-    if (!this.state.user) return;
-
-    await this.updateUser({
-      preferences: {
-        ...this.state.user.preferences,
-        ...preferences
-      }
-    });
-  }
-
-  // Update Stats
-  async updateStats(stats: Partial<User['stats']>): Promise<void> {
-    if (!this.state.user) return;
-
-    await this.updateUser({
-      stats: {
-        ...this.state.user.stats,
-        ...stats
-      }
-    });
-  }
-
-  // Get Current State
   getState(): AuthState {
-    return this.state;
-  }
-
-  // Privacy Methods
-  async exportUserData(): Promise<any> {
-    return {
-      user: this.state.user,
-      analytics: localStorage.getItem('sakulang-analytics-events'),
-      progress: localStorage.getItem('saku-dojo-progress')
-    };
-  }
-
-  async deleteAccount(): Promise<void> {
-    // Clear all user data
-    localStorage.removeItem('sakulang-user');
-    localStorage.removeItem('sakulang-analytics-events');
-    localStorage.removeItem('sakulang-analytics-consent');
-    localStorage.removeItem('saku-dojo-progress');
-    localStorage.removeItem('sakulang-theme');
-    localStorage.removeItem('sakulang-language');
-
-    this.state = {
-      user: null,
-      isAuthenticated: false,
-      isLoading: false
-    };
-
-    this.notify();
+    return { ...this.state };
   }
 }
 
-// Singleton instance
 export const authService = new AuthService();
 
-// React Hook
+// React hook for using auth service
 import { useState, useEffect } from 'react';
 
 export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>(authService.getState());
+  const [state, setState] = useState(authService.getState());
 
   useEffect(() => {
-    const unsubscribe = authService.subscribe(setAuthState);
+    const unsubscribe = authService.subscribe(setState);
     return unsubscribe;
   }, []);
 
   return {
-    ...authState,
-    loginAsGuest: authService.loginAsGuest.bind(authService),
-    logout: authService.logout.bind(authService),
-    updateUser: authService.updateUser.bind(authService),
-    updatePreferences: authService.updatePreferences.bind(authService),
-    updateStats: authService.updateStats.bind(authService),
-    exportUserData: authService.exportUserData.bind(authService),
-    deleteAccount: authService.deleteAccount.bind(authService)
+    user: state.user,
+    isLoading: state.isLoading,
+    isAuthenticated: authService.isAuthenticated(),
+    loginAsGuest: () => authService.loginAsGuest(),
+    logout: () => authService.logout()
   };
 };

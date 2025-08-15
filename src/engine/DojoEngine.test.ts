@@ -2,7 +2,8 @@
 // การทดสอบระบบจัดการเซสชันการเรียน
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DojoEngine, SessionState } from './DojoEngine';
+import { DojoEngine } from './DojoEngine';
+import { SessionState } from '../types/core';
 import type { QuestionBank, MCQ, Typing, Open } from '../types/core';
 
 // ข้อมูลทดสอบ / Test data

@@ -38,7 +38,10 @@
 
     - _Requirements: 3.2, 3.3, 3.4_
 
-  - [ ] 2.3 Add session navigation and control
+  - [x] 2.3 Add session navigation and control
+
+
+
 
 
     - Implement nextQuestion, previousQuestion, and skipQuestion methods
@@ -49,6 +52,9 @@
     - Create session reset functionality
     - Write unit tests for navigation and session lifecycle
     - _Requirements: 3.2, 3.7_
+
+
+
 
 
 
@@ -221,15 +227,179 @@
     - Write internationalization tests and character encoding validation
     - _Requirements: 1.1, 1.2_
 
-- [ ] 12. Integration testing and final polish
-  - [ ] 12.1 Create comprehensive integration tests
+- [ ] 12. Kiro Light — Audit & Redesign v1 (UI + Question Bank)
+  - [x] 12.1 Quick Audit & Information Architecture Restructure
+
+
+
+    - Conduct UI/UX audit: identify strengths, gaps, and areas for reorganization
+    - Reduce navigation from 6 tabs to 4 tabs: Home, Plan, Focus, Learn
+    - Move Quick Add to AppBar as + button, move ICS to Settings → Utilities
+    - Create new Learn module for vocabulary/questions with filters (CEFR/JLPT/Tags)
+    - Design Light-first theme (white-blue minimal) with Dark mode as secondary
+    - _Requirements: UI audit, navigation simplification, new Learn module_
+
+  - [x] 12.2 Light Theme Implementation (White-Blue Minimal)
+
+
+
+    - Implement Light theme color tokens: bg/0 #F8FAFC, bg/1 #FFFFFF, pri/500 #1D4ED8
+    - Create typography scale: Display 32/40/700, H1 24/32/700, Body 16/24/400
+    - Add spacing system (4,8,12,16,24,32), radius (card 16, input 12), elevation
+    - Implement smooth motion system: 120ms micro, 200ms standard, 240ms modal
+    - Update all UI components to use Light theme tokens with proper contrast
+    - _Requirements: Light theme design system, accessibility compliance_
+
+  - [x] 12.3 Learn Module Development
+
+
+
+
+
+    - Create Learn page with Filter bar (Language, Level, Type, Tag, Source, License)
+    - Implement vocabulary/question cards with License attribution chips
+    - Build Study Flow: Deck selection → Practice modes → Results & progress
+    - Add practice modes: Flashcards, Multiple-choice, Dictation, Conversation prompts
+    - Create question detail view with meaning, examples, audio, source/license
+    - _Requirements: Learn module, study flows, license attribution_
+
+  - [ ] 12.4 Question Bank Data Model & Schema
+
+
+    - Design JSON schema for Items (vocab/grammar/reading/listening/pronunciation)
+    - Implement Source entity with license, attribution, and URL tracking
+    - Create Media entity for audio/images with proper license attribution
+    - Add level classification: CEFR (A1-C1), JLPT heuristic (1-5), frequency bands
+    - Implement scoring system based on word frequency, sentence complexity, kanji count
+    - _Requirements: Data model, licensing system, difficulty classification_
+
+  - [x] 12.5 Open Source Data Integration & ETL Pipeline
+
+
+
+    - Set up ETL pipeline: Ingest → Normalize → Link → Level → Moderate → Version
+    - Integrate EN sources: NGSL/NAWL (high-frequency & academic vocabulary)
+    - Integrate JP sources: JMdict + KANJIDIC2 (meanings/readings/examples)
+    - Add parallel sentences from Tatoeba (EN-JP sentence pairs)
+    - Implement heuristic leveling based on frequency/length/grammar patterns
+    - Create sources.json with proper attribution and license tracking
+    - _Requirements: Open source integration, ETL pipeline, data curation_
+
+  - [x] 12.6 UI Components & Accessibility
+
+
+
+    - Implement Light-spec components: AppBar (64px/56px), TabBar, Cards, Buttons
+    - Create accessible components: touch targets ≥44x44, focus rings, proper contrast
+    - Add License badges (BY, BY-SA, EDRDG) with proper styling and attribution
+    - Implement responsive design with mobile-first approach
+    - Add bundle splitting: separate Learn module, lazy loading, prefetch on hover
+    - Ensure WCAG compliance and reduced-motion support
+    - _Requirements: Accessibility, performance, responsive design_
+
+  - [x] 12.7 Starter Content & Curation
+
+
+
+    - Create starter decks: EN Daily A1-A2 (1000 items), EN Academic B1-C1 (800 items)
+    - Add JP Daily Heuristic 1-5 (1200 items) from JMdict + Tatoeba
+    - Organize by topics: Travel, Work, Study, Dev, Music (200-300 items each)
+    - Implement content moderation: random 5-10% batch checking, license validation
+    - Create version.json for release tracking with source hashes
+    - Add copywriting with light tone: encouraging, clear, transparent messaging
+    - _Requirements: Content curation, starter decks, quality assurance_
+
+- [ ] 13. Feedback Chat + Success Leaderboard System
+  - [x] 13.1 Help Drawer & Chat-like Feedback Interface
+
+
+
+    - Create floating Help button (💬) in bottom-right corner (desktop) / above TabBar (mobile)
+    - Implement Feedback Drawer (~360px width) with "คุยกับ Kiro Care" header
+    - Add real-time chat interface with message input, send button, and file attachment
+    - Create channel selection: Default "Kiro Inbox", Email, Telegram, Messenger (multi-select)
+    - Add "ดูวิธีแก้เอง" CTA linking to docs/FAQ
+    - _Requirements: Real-time chat UI, channel integration, file upload_
+
+
+
+
+
+
+
+  - [ ] 13.2 Multi-Channel Integration & Bidirectional Sync
+    - Implement Telegram Bot webhook integration for receiving/sending messages
+    - Add Messenger Webhook integration with Facebook Graph API
+    - Create Email integration: SMTP outbound + inbound parsing or magic link replies
+
+
+
+    - Build bidirectional message sync: team replies in external channels → sync back to Drawer
+    - Add channel indicator badges under chat bubbles (e.g., "ตอบผ่าน Telegram")
+    - _Requirements: Webhook integrations, message synchronization, channel routing_
+
+
+
+
+  - [x] 13.3 Database Schema & API Design
+
+
+
+
+
+
+
+
+
+    - Design chat schema: conversations, messages, participants, channels, attachments
+    - Create REST API endpoints: start chat, send message, attach file, close case
+    - Implement WebSocket API for real-time messaging (target latency ≤1s)
+    - Add webhook endpoints for each channel (Telegram, Messenger, Email)
+    - Create conversation status tracking: New/Open/Waiting/Resolved
+    - _Requirements: Database design, REST/WS APIs, webhook handling_
+
+  - [ ] 13.4 Security, Privacy & Compliance
+    - Implement user consent flow before collecting contact information
+    - Add rate limiting for messages and file uploads (prevent spam)
+    - Create file attachment validation and virus scanning
+    - Implement Content Security Policy (CSP) for chat interface
+    - Add comprehensive audit logging for all chat interactions
+    - _Requirements: Privacy compliance, security measures, audit trails_
+
+  - [ ] 13.5 Success Events & Metrics System
+    - Define success event types: focus sessions, quiz completions, study streaks
+    - Create SuccessEvent data model with user, event type, points, timestamp
+    - Implement scoring algorithm: focus minutes, questions answered, streak days
+    - Add event tracking integration with existing DojoEngine and FocusScreen
+    - Create daily/weekly/all-time aggregation system
+    - _Requirements: Event tracking, scoring system, data aggregation_
+
+  - [ ] 13.6 Public Leaderboard Interface
+    - Create /leaderboard public page with Daily/Weekly/All-time filters
+    - Implement category filters: Focus, Learn, Streak, Overall
+    - Design Hero cards for Top 3 + table view for Top 100
+    - Add anonymous/public name display options (protect privacy)
+    - Create "อธิบายวิธีคิดคะแนน" modal with scoring explanation
+    - Implement "อันดับของฉัน" personal ranking card
+    - _Requirements: Public leaderboard UI, privacy protection, scoring transparency_
+
+  - [ ] 13.7 Performance & Testing
+    - Ensure WebSocket message delivery ≤1s latency
+    - Implement offline message queuing and sync when reconnected
+    - Create comprehensive test suite: unit tests, integration tests, load tests
+    - Add monitoring for chat system health and webhook reliability
+    - Test all channel integrations with real external services
+    - _Requirements: Performance targets, comprehensive testing, monitoring_
+
+- [ ] 14. Integration testing and final polish
+  - [ ] 14.1 Create comprehensive integration tests
     - Write end-to-end tests for complete learning workflows
     - Test cross-browser compatibility for storage and UI
     - Implement automated testing for all user scenarios
     - Create test data and mock services for consistent testing
     - _Requirements: All requirements integration testing_
 
-  - [ ] 12.2 Final optimization and deployment preparation
+  - [ ] 14.2 Final optimization and deployment preparation
     - Optimize final bundle size and loading performance
     - Implement service worker for offline functionality
     - Create build configuration and deployment scripts

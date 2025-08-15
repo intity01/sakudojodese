@@ -1,13 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'default' | 'cute' | 'cool' | 'dark';
-export type Language = 'en' | 'th' | 'ja';
+type Theme = 'system' | 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
-  language: Language;
   setTheme: (theme: Theme) => void;
-  setLanguage: (language: Language) => void;
+  resolvedTheme: 'light' | 'dark';
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -21,44 +19,59 @@ export const useTheme = () => {
 };
 
 interface ThemeProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [theme, setThemeState] = useState<Theme>('default');
-  const [language, setLanguageState] = useState<Language>('en');
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const [theme, setTheme] = useState<Theme>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
 
-  // Load saved preferences
+  // Load theme from localStorage
   useEffect(() => {
-    const savedTheme = localStorage.getItem('sakulang-theme') as Theme;
-    const savedLanguage = localStorage.getItem('sakulang-language') as Language;
-    
-    if (savedTheme) {
-      setThemeState(savedTheme);
-    }
-    
-    if (savedLanguage) {
-      setLanguageState(savedLanguage);
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme && ['system', 'light', 'dark'].includes(savedTheme)) {
+      setTheme(savedTheme);
     }
   }, []);
 
-  // Apply theme to document
+  // Save theme to localStorage
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('sakulang-theme', newTheme);
-  };
+  // Resolve system theme
+  useEffect(() => {
+    const updateResolvedTheme = () => {
+      if (theme === 'system') {
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        setResolvedTheme(systemTheme);
+      } else {
+        setResolvedTheme(theme);
+      }
+    };
 
-  const setLanguage = (newLanguage: Language) => {
-    setLanguageState(newLanguage);
-    localStorage.setItem('sakulang-language', newLanguage);
+    updateResolvedTheme();
+
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', updateResolvedTheme);
+      return () => mediaQuery.removeEventListener('change', updateResolvedTheme);
+    }
+  }, [theme]);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+  }, [resolvedTheme]);
+
+  const value: ThemeContextType = {
+    theme,
+    setTheme,
+    resolvedTheme
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, language, setTheme, setLanguage }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

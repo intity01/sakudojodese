@@ -1,4 +1,4 @@
-import { } from 'react';
+import React from 'react';
 import type { ProgressEntry } from '../types/core';
 
 interface ResultScreenProps {
@@ -7,38 +7,36 @@ interface ResultScreenProps {
   onShowProgress: () => void;
 }
 
-const ResultScreen: React.FC<ResultScreenProps> = ({ 
-  progress, 
-  onRestart, 
-  onShowProgress 
+const ResultScreen: React.FC<ResultScreenProps> = ({
+  progress,
+  onRestart,
+  onShowProgress
 }) => {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+  const scorePercent = Math.round(progress.scorePct);
+  const isGoodScore = scorePercent >= 70;
+  const isPerfectScore = scorePercent === 100;
+
+  const getScoreEmoji = () => {
+    if (isPerfectScore) return '🏆';
+    if (scorePercent >= 90) return '🌟';
+    if (scorePercent >= 80) return '🎉';
+    if (scorePercent >= 70) return '👍';
+    if (scorePercent >= 60) return '📚';
+    return '💪';
   };
 
-  const getScoreEmoji = (score: number) => {
-    if (score >= 90) return '🌟';
-    if (score >= 80) return '🎉';
-    if (score >= 70) return '👍';
-    if (score >= 60) return '👌';
-    if (score >= 50) return '💪';
-    return '📚';
-  };
-
-  const getEncouragement = (score: number) => {
-    if (score >= 90) return "Outstanding! You're mastering this level! 🌟";
-    if (score >= 80) return "Excellent work! You're ready for the next challenge! 🎉";
-    if (score >= 70) return "Great job! Keep up the good work! 👍";
-    if (score >= 60) return "Good effort! A little more practice will help! 👌";
-    if (score >= 50) return "You're getting there! Keep practicing! 💪";
-    return "Don't give up! Every expert was once a beginner! 📚";
+  const getScoreMessage = () => {
+    if (isPerfectScore) return 'สมบูรณ์แบบ!';
+    if (scorePercent >= 90) return 'ยอดเยี่ยม!';
+    if (scorePercent >= 80) return 'ดีมาก!';
+    if (scorePercent >= 70) return 'ดี!';
+    if (scorePercent >= 60) return 'พอใช้';
+    return 'ต้องฝึกฝนเพิ่มเติม';
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('th-TH', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -48,126 +46,142 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
   };
 
   return (
-    <div className="fade-in">
-      <div className="text-center mb-8">
-        <div className="text-6xl mb-4 bounce">
-          {getScoreEmoji(progress.scorePct)}
-        </div>
-        <h1 className="text-3xl font-bold mb-2">Session Complete!</h1>
-        <p className="text-gray-600">Here are your results</p>
-      </div>
-
-      {/* Main Result Card */}
-      <div className="card mb-6" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div className="card-header text-center">
-          <h2 className="text-2xl font-bold mb-2">📊 Your Score</h2>
-          <div className={`text-5xl font-bold ${getScoreColor(progress.scorePct)}`}>
-            {progress.scorePct}%
-          </div>
-          <p className="text-lg text-gray-600 mt-2">
-            {progress.correct} out of {progress.total} correct
-          </p>
-        </div>
-
-        <div className="card-body">
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="progress" style={{ height: '12px' }}>
-              <div 
-                className="progress-bar" 
-                style={{ 
-                  width: `${progress.scorePct}%`,
-                  backgroundColor: progress.scorePct >= 80 ? '#10B981' : 
-                                 progress.scorePct >= 60 ? '#F59E0B' : '#EF4444'
-                }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Encouragement */}
-          <div className="alert alert-info mb-6">
-            <p className="text-center font-medium">
-              {getEncouragement(progress.scorePct)}
-            </p>
-          </div>
-
-          {/* Session Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Language</div>
-              <div className="text-lg">
-                {progress.track === 'EN' ? '🇺🇸 English' : '🇯🇵 Japanese'}
-              </div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Framework</div>
-              <div className="text-lg">{progress.framework}</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Level</div>
-              <div className="text-lg">{progress.level}</div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <div className="font-semibold text-gray-700">Mode</div>
-              <div className="text-lg">{progress.mode}</div>
-            </div>
-          </div>
-
-          <div className="mt-4 text-center text-sm text-gray-500">
-            Completed on {formatDate(progress.date)}
-          </div>
-        </div>
-
-        <div className="card-footer">
-          <div className="flex flex-col gap-3">
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={onRestart}
-            >
-              🚀 Start New Session
-            </button>
-            <button 
-              className="btn btn-secondary"
-              onClick={onShowProgress}
-            >
-              📊 View All Progress
-            </button>
+    <div className="result-screen">
+      <div className="result-header">
+        <div className="score-display">
+          <div className="score-emoji">{getScoreEmoji()}</div>
+          <div className="score-text">
+            <h1 className="score-percentage">{scorePercent}%</h1>
+            <p className="score-message">{getScoreMessage()}</p>
           </div>
         </div>
       </div>
 
-      {/* Tips Card */}
-      <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
-        <div className="card-header">
-          <h3 className="text-lg font-semibold text-center">
-            💡 Tips for Improvement
-          </h3>
-        </div>
-        <div className="card-body">
-          <div className="text-sm space-y-2">
-            {progress.scorePct < 60 && (
-              <>
-                <p>• 📖 Review the basics of this level before trying again</p>
-                <p>• 🔄 Practice similar questions to build confidence</p>
-                <p>• ⏰ Take your time to read each question carefully</p>
-              </>
-            )}
-            {progress.scorePct >= 60 && progress.scorePct < 80 && (
-              <>
-                <p>• 🎯 Focus on the question types you missed</p>
-                <p>• 📚 Try studying mode for more detailed explanations</p>
-                <p>• 🔄 Regular practice will help improve your score</p>
-              </>
-            )}
-            {progress.scorePct >= 80 && (
-              <>
-                <p>• 🚀 You're ready to try the next difficulty level!</p>
-                <p>• 🎯 Challenge yourself with exam mode</p>
-                <p>• 📈 Keep practicing to maintain your skills</p>
-              </>
-            )}
-            <p>• 📱 This app works offline - practice anytime, anywhere!</p>
+      <div className="result-details">
+        <div className="stats-grid">
+          <div className="stat-item">
+            <div className="stat-value">{progress.correct}</div>
+            <div className="stat-label">ถูก</div>
           </div>
+          
+          <div className="stat-item">
+            <div className="stat-value">{progress.total - progress.correct}</div>
+            <div className="stat-label">ผิด</div>
+          </div>
+          
+          <div className="stat-item">
+            <div className="stat-value">{progress.total}</div>
+            <div className="stat-label">รวม</div>
+          </div>
+        </div>
+
+        <div className="session-info">
+          <div className="info-row">
+            <span className="info-label">ภาษา:</span>
+            <span className="info-value">
+              {progress.track === 'EN' ? '🇺🇸 English' : '🇯🇵 Japanese'}
+            </span>
+          </div>
+          
+          <div className="info-row">
+            <span className="info-label">หลักสูตร:</span>
+            <span className="info-value">{progress.framework}</span>
+          </div>
+          
+          <div className="info-row">
+            <span className="info-label">ระดับ:</span>
+            <span className="info-value">{progress.level}</span>
+          </div>
+          
+          <div className="info-row">
+            <span className="info-label">โหมด:</span>
+            <span className="info-value">{progress.mode}</span>
+          </div>
+          
+          <div className="info-row">
+            <span className="info-label">เวลา:</span>
+            <span className="info-value">{formatDate(progress.date)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="result-progress">
+        <div className="progress-bar-container">
+          <div 
+            className={`progress-bar-fill ${isGoodScore ? 'good-score' : 'needs-improvement'}`}
+            style={{ width: `${scorePercent}%` }}
+          />
+        </div>
+        <div className="progress-labels">
+          <span>0%</span>
+          <span>50%</span>
+          <span>100%</span>
+        </div>
+      </div>
+
+      {/* Recommendations */}
+      <div className="recommendations">
+        {isPerfectScore && (
+          <div className="recommendation perfect">
+            <h3>🎯 แนะนำ</h3>
+            <p>คุณทำได้ดีมาก! ลองเพิ่มระดับความยากหรือเปลี่ยนโหมดการเรียนดู</p>
+          </div>
+        )}
+        
+        {isGoodScore && !isPerfectScore && (
+          <div className="recommendation good">
+            <h3>📈 แนะนำ</h3>
+            <p>คะแนนดี! ลองทำแบบทดสอบเพิ่มเติมเพื่อเสริมความแข็งแกร่ง</p>
+          </div>
+        )}
+        
+        {!isGoodScore && (
+          <div className="recommendation needs-work">
+            <h3>💡 แนะนำ</h3>
+            <p>ลองใช้โหมด Study เพื่อทบทวนเนื้อหาก่อนทำแบบทดสอบอีกครั้ง</p>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="result-actions">
+        <button
+          type="button"
+          className="btn btn-primary btn-lg"
+          onClick={onRestart}
+        >
+          🔄 ทำใหม่
+        </button>
+        
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onShowProgress}
+        >
+          📊 ดูความคืบหน้า
+        </button>
+      </div>
+
+      {/* Share Results (Future Feature) */}
+      <div className="share-section">
+        <p className="share-text">แชร์ผลลัพธ์ของคุณ</p>
+        <div className="share-buttons">
+          <button
+            type="button"
+            className="btn btn-outline share-btn"
+            onClick={() => {
+              const text = `ฉันได้คะแนน ${scorePercent}% ใน ${progress.framework} ${progress.level} (${progress.mode}) บน SAKULANG! 🎌`;
+              if (navigator.share) {
+                navigator.share({ text });
+              } else {
+                navigator.clipboard.writeText(text);
+                alert('คัดลอกข้อความแล้ว!');
+              }
+            }}
+          >
+            📱 แชร์
+          </button>
         </div>
       </div>
     </div>

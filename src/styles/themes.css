@@ -239,3 +239,55 @@
 .animate-bounce { animation: bounce 1s ease; }
 .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
+/* Kiro
+ Spec Compliant Theme System */
+/* Light Theme Override - uses .theme-light class on <html> */
+.theme-light {
+  --bg-0: #FFFFFF;        /* white - main background */
+  --bg-1: #F8FAFC;        /* slate-50 - elevated surfaces */
+  --fg-0: #1E293B;        /* slate-800 - primary text */
+  --fg-muted: #64748B;    /* slate-500 - secondary text */
+  
+  /* SAKULANG Brand Colors (same) */
+  --pri-500: #10B981;     /* emerald - primary actions */
+  --warn-500: #F59E0B;    /* amber - warnings */
+  --danger-500: #EF4444;  /* red - danger/errors */
+  
+  /* Additional Semantic Colors */
+  --success: #10B981;
+  --info: #3B82F6;
+  --surface: #F1F5F9;     /* slate-100 */
+  --surface-hover: #E2E8F0; /* slate-200 */
+  --border: #CBD5E1;      /* slate-300 */
+  --border-muted: #E2E8F0; /* slate-200 */
+  
+  /* Shadows for light mode */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Dark Theme (default) */
+:root {
+  /* Kiro-inspired Color System (Dark-first) */
+  --bg-0: #0F172A;        /* slate-950 - main background */
+  --bg-1: #0B1222;        /* elevated surfaces */
+  --fg-0: #E5E7EB;        /* primary text */
+  --fg-muted: #94A3B8;    /* secondary text */
+  
+  /* SAKULANG Brand Colors */
+  --pri-500: #10B981;     /* emerald - primary actions */
+  --warn-500: #F59E0B;    /* amber - warnings */
+  --danger-500: #EF4444;  /* red - danger/errors */
+  
+  /* Additional Semantic Colors */
+  --success: #10B981;
+  --info: #3B82F6;
+  --surface: var(--bg-1);
+  --surface-hover: #1E293B;
+  --border: #334155;
+  --border-muted: #1E293B;
+  
+  /* Shadows */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.15);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.25);
+}

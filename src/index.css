@@ -63,6 +63,21 @@
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
@@ -354,4 +369,431 @@ body {
   .card-footer {
     padding: var(--space-4);
   }
+}
+
+/* ===== SPLASH SCREEN STYLES ===== */
+
+/* Splash Overlay - Full screen minimal design */
+.splash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+}
+
+/* Splash Content Container - Minimal */
+.splash-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+}
+
+/* Logo Styling - Clean */
+.splash-logo {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* Spinner Animation - Clean Blue Circle */
+.splash-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner-circle {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Removed progress bar and status message for minimal design */
+
+/* Offline Badge */
+.splash-offline {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--warning);
+  color: white;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-md);
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.offline-indicator {
+  font-size: 0.875rem;
+}
+
+.offline-text {
+  font-weight: 500;
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Fade Out Animation - Fast */
+.splash-fade-out {
+  animation: fadeOut 0.2s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  from { 
+    opacity: 1; 
+  }
+  to { 
+    opacity: 0; 
+  }
+}
+
+/* Skip Link for Accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: var(--space-4);
+  background: var(--primary);
+  color: white;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  z-index: 10000;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== ACCESSIBILITY & MOTION PREFERENCES ===== */
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .spinner-circle {
+    animation: none;
+  }
+  
+  .splash-fade-out {
+    animation: fadeOutReduced 0.1s ease-out forwards;
+  }
+  
+  @keyframes fadeOutReduced {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  .splash-offline {
+    animation: none;
+  }
+}
+
+.splash-overlay.reduced-motion .spinner-circle {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* High Contrast Support */
+@media (prefers-contrast: high) {
+  .splash-overlay.high-contrast {
+    background: white;
+    border: 2px solid black;
+  }
+  
+  .splash-overlay.high-contrast .splash-logo {
+    color: black;
+    text-shadow: none;
+  }
+  
+  .splash-overlay.high-contrast .splash-progress .progress {
+    background-color: black;
+    border: 1px solid black;
+  }
+  
+  .splash-overlay.high-contrast .splash-progress .progress-bar {
+    background: black;
+  }
+  
+  .splash-overlay.high-contrast .splash-status {
+    color: black;
+    font-weight: 700;
+  }
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Mobile Devices */
+@media (max-width: 640px) {
+  .splash-content {
+    gap: var(--space-6);
+  }
+  
+  .splash-logo {
+    font-size: 3rem;
+  }
+  
+  .spinner-circle {
+    width: 28px;
+    height: 28px;
+    border-width: 2.5px;
+  }
+  
+  .splash-offline {
+    top: var(--space-3);
+    right: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+  
+  .skip-link {
+    left: var(--space-2);
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* Large Screens */
+@media (min-width: 1024px) {
+  .splash-content {
+    gap: var(--space-10);
+  }
+  
+  .splash-logo {
+    font-size: 5rem;
+  }
+  
+  .spinner-circle {
+    width: 40px;
+    height: 40px;
+    border-width: 4px;
+  }
+}
+
+/* Landscape Orientation on Mobile */
+@media (max-width: 640px) and (orientation: landscape) {
+  .splash-content {
+    max-width: 280px;
+    gap: var(--space-2);
+  }
+  
+  .splash-logo {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--space-2);
+  }
+  
+  .splash-spinner {
+    font-size: 1.25rem;
+    margin: var(--space-2) 0;
+  }
+  
+  .splash-progress {
+    margin: var(--space-3) 0 var(--space-2) 0;
+  }
+}
+
+/* Dark Mode Support (if theme context provides it) */
+@media (prefers-color-scheme: dark) {
+  .splash-overlay {
+    background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-800) 100%);
+  }
+  
+  .splash-logo {
+    color: var(--gray-100);
+  }
+  
+  .splash-status {
+    color: var(--gray-300);
+  }
+  
+  .splash-progress .progress {
+    background-color: var(--gray-700);
+  }
+}
+
+/* Print Styles (Hide splash when printing) */
+@media print {
+  .splash-overlay {
+    display: none !important;
+  }
+}/* =
+==== ERROR STATE STYLES ===== */
+
+.splash-error {
+  background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+}
+
+.splash-error-message {
+  text-align: center;
+  margin: var(--space-6) 0;
+  color: var(--danger);
+}
+
+.splash-error-message p {
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.error-details {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  font-weight: 400 !important;
+}
+
+.splash-error .btn {
+  margin-top: var(--space-4);
+}
+
+/* High contrast error state */
+@media (prefers-contrast: high) {
+  .splash-error {
+    background: white;
+    border: 3px solid red;
+  }
+  
+  .splash-error-message {
+    color: red;
+  }
+}
+
+/* Dark mode error state */
+@media (prefers-color-scheme: dark) {
+  .splash-error {
+    background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%);
+  }
+  
+  .splash-error-message {
+    color: #FCA5A5;
+  }
+  
+  .error-details {
+    color: var(--gray-300);
+  }
+}/* Ult
+ra-wide screens */
+@media (min-width: 1440px) {
+  .splash-content {
+    max-width: 600px;
+    padding: var(--space-12);
+  }
+  
+  .splash-logo {
+    font-size: 4.5rem;
+  }
+  
+  .splash-spinner {
+    font-size: 3.5rem;
+  }
+  
+  .splash-progress {
+    max-width: 400px;
+  }
+}
+
+/* Very tall screens - ensure content doesn't get too spread out */
+@media (min-height: 900px) {
+  .splash-content {
+    gap: var(--space-6);
+  }
+}
+
+/* Short screens - compact layout */
+@media (max-height: 600px) {
+  .splash-content {
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+  
+  .splash-logo {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-2);
+  }
+  
+  .splash-spinner {
+    font-size: 1.75rem;
+    margin: var(--space-1) 0;
+  }
+  
+  .splash-progress {
+    margin: var(--space-3) 0 var(--space-2) 0;
+  }
+}
+
+/* Perfect centering for all screen sizes */
+.splash-overlay {
+  /* Use CSS Grid for perfect centering */
+  display: grid;
+  place-items: center;
+  grid-template-rows: 1fr;
+  grid-template-columns: 1fr;
+}
+
+.splash-content {
+  /* Reset flex to work with grid */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
