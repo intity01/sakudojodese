@@ -7,6 +7,7 @@ import {
   LeaderboardWidget,
   LeaderboardCard,
   ScoringExplanationModal,
+  UserProfileModal,
   type LeaderboardEntry,
   type SuccessCategory
 } from '../components/leaderboard';
@@ -93,8 +94,11 @@ export const LeaderboardTestPage: React.FC = () => {
 
   const handleUserClick = (entry: LeaderboardEntry) => {
     setSelectedUser(entry);
+    setShowUserModal(true);
     console.log('User clicked:', entry);
   };
+
+  const [showUserModal, setShowUserModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -189,6 +193,13 @@ export const LeaderboardTestPage: React.FC = () => {
             >
               Log Mock Data
             </button>
+            
+            <button
+              onClick={() => alert('Click handlers working! Check console for logs.')}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+            >
+              Test Click Handler
+            </button>
           </div>
         </div>
 
@@ -220,6 +231,30 @@ export const LeaderboardTestPage: React.FC = () => {
           </pre>
         </div>
 
+        {/* Scoring Modal Test */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            🧮 Scoring System Test
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Test the scoring explanation modal with different categories:
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {['learning', 'focus', 'streak', 'achievement', 'social'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setSelectedCategory(cat as any);
+                  setShowScoringModal(true);
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors capitalize"
+              >
+                {cat} Scoring
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Instructions */}
         <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
           <h2 className="text-2xl font-semibold text-blue-900 mb-4">
@@ -233,6 +268,8 @@ export const LeaderboardTestPage: React.FC = () => {
             <li>• Test responsive design by resizing the window</li>
             <li>• Try keyboard navigation (Tab, Enter, Space)</li>
             <li>• The full LeaderboardScreen will show loading/error if service isn't running</li>
+            <li>• Test user profile modal by clicking on user cards</li>
+            <li>• Test different scoring categories using the buttons above</li>
           </ul>
         </div>
       </div>
@@ -243,6 +280,18 @@ export const LeaderboardTestPage: React.FC = () => {
         onClose={() => setShowScoringModal(false)}
         category={selectedCategory}
       />
+
+      {/* User Profile Modal */}
+      {showUserModal && selectedUser && (
+        <UserProfileModal
+          user={selectedUser}
+          onClose={() => {
+            setShowUserModal(false);
+            setSelectedUser(null);
+          }}
+          currentUserId="current-user"
+        />
+      )}
     </div>
   );
 };
