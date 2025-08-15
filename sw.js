@@ -1,13 +1,24 @@
-// Service Worker for SAKULANG
-// Enhanced PWA with notifications and offline functionality
+// SAKULANG Service Worker - Kiro Spec Compliant
+// PWA Offline Support with cache-first + background update
 
-const CACHE_NAME = 'sakulang-v1.0.0';
-const STATIC_CACHE_URLS = [
+const CACHE_NAME = 'sakulang-v2';
+const STATIC_CACHE = 'sakulang-static-v2';
+
+// Core files to cache (Kiro spec)
+const CORE_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/logo.svg',
   '/icon-192.png',
   '/icon-512.png'
+];
+
+// Static assets
+const STATIC_ASSETS = [
+  '/src/styles/themes.css',
+  '/src/App.css',
+  '/src/index.css'
 ];
 
 // Install event - cache static assets
