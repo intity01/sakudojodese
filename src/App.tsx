@@ -1,48 +1,75 @@
 import { useState, useEffect } from 'react';
 import { DojoEngine } from './engine/DojoEngine';
-import type { Track, Framework, Mode, ProgressEntry } from './types/core';
-import { sampleQuestionBank } from '../demo';
+import type { ProgressEntry, SessionConfig } from './types/core';
+// Use minimal question bank for fast loading
+import { minimalQuestionBank } from './data/minimalQuestionBank';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { analytics } from './services/analytics';
 import { useAuth } from './services/auth';
 import { useTranslation } from './hooks/useTranslation';
-import './styles/themes.css';
-import './App.css';
+// Load CSS after initial render to not block
+setTimeout(() => {
+  const link1 = document.createElement('link');
+  link1.rel = 'stylesheet';
+  link1.href = '/src/styles/themes.css';
+  document.head.appendChild(link1);
+  
+  const link2 = document.createElement('link');
+  link2.rel = 'stylesheet';
+  link2.href = '/src/App.css';
+  document.head.appendChild(link2);
+}, 50);
 
 // Components
+import Splash from './components/Splash';
 import StartScreen from './components/StartScreen';
 import QuestionScreen from './components/QuestionScreen';
 import ResultScreen from './components/ResultScreen';
 import ProgressScreen from './components/ProgressScreen';
 import SettingsScreen from './components/SettingsScreen';
 
-type AppState = 'start' | 'quiz' | 'result' | 'progress' | 'settings';
-
-interface SessionConfig {
-  track: Track;
-  framework: Framework;
-  level: string;
-  mode: Mode;
-  questionCount?: number;
-}
+type AppState = 'boot' | 'start' | 'quiz' | 'result' | 'progress' | 'settings';
 
 const AppContent = () => {
-  const [appState, setAppState] = useState<AppState>('start');
-  const [engine] = useState(() => new DojoEngine(sampleQuestionBank));
+  const [appState, setAppState] = useState<AppState>('boot');
+  const [engine, setEngine] = useState<DojoEngine | null>(null);
   const [progressHistory, setProgressHistory] = useState<ProgressEntry[]>([]);
   const [currentProgress, setCurrentProgress] = useState<ProgressEntry | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { user, loginAsGuest } = useAuth();
   const { t } = useTranslation();
 
-  // Initialize analytics and auto-login
+  // Boot sequence initialization
   useEffect(() => {
-    analytics.trackPageView('app_start');
-    
-    // Auto-login as guest if no user
-    if (!user) {
-      loginAsGuest();
+    if (appState === 'boot' && !isInitialized) {
+      // Initialize services during boot
+      const initializeApp = async () => {
+        try {
+          // Use minimal question bank for instant loading
+          setEngine(new DojoEngine(minimalQuestionBank));
+          
+          // Track app start (delayed)
+          setTimeout(() => analytics.trackPageView('app_start'), 100);
+          
+          // Auto-login as guest (delayed to not block UI)
+          setTimeout(() => {
+            if (!user) {
+              loginAsGuest();
+            }
+          }, 200);
+          
+          // Mark as initialized
+          setIsInitialized(true);
+        } catch (error) {
+          console.error('App initialization error:', error);
+          // Continue anyway to prevent blocking
+          setIsInitialized(true);
+        }
+      };
+
+      initializeApp();
     }
-  }, [user, loginAsGuest]);
+  }, [appState, isInitialized, user, loginAsGuest]);
 
   // Load progress from localStorage
   useEffect(() => {
@@ -64,7 +91,20 @@ const AppContent = () => {
   };
 
   const startSession = (config: SessionConfig) => {
-    const success = engine.startSession(config);
+    if (!engine) return;
+    
+    let success = false;
+    
+    // Use specific mode methods for better functionality
+    if (config.mode === 'Quiz') {
+      success = engine.startQuizSession(config.track, config.framework, config.level, config.questionCount);
+    } else if (config.mode === 'Study') {
+      success = engine.startStudySession(config.track, config.framework, config.level, config.questionCount);
+    } else {
+      // Fallback to generic method for other modes
+      success = engine.startSession(config);
+    }
+    
     if (success) {
       setAppState('quiz');
     } else {
@@ -73,6 +113,7 @@ const AppContent = () => {
   };
 
   const finishSession = () => {
+    if (!engine) return;
     const result = engine.finishSession();
     if (result) {
       setCurrentProgress(result);
@@ -82,6 +123,7 @@ const AppContent = () => {
   };
 
   const resetToStart = () => {
+    if (!engine) return;
     engine.resetSession();
     setCurrentProgress(null);
     setAppState('start');
@@ -95,8 +137,53 @@ const AppContent = () => {
     setAppState('settings');
   };
 
+  const handleSplashComplete = () => {
+    // Transition from boot to start
+    setAppState('start');
+    analytics.track('splash_completed', {
+      duration: Date.now() - (window as any).__appStartTime || 0
+    });
+  };
+
+  const handleBootError = () => {
+    // Fallback: skip to start if boot fails
+    console.warn('Boot sequence failed, falling back to start screen');
+    setAppState('start');
+    analytics.track('boot_error', {
+      timestamp: Date.now()
+    });
+  };
+
+  // Track app start time for analytics and set fallback timeout
+  useEffect(() => {
+    if (appState === 'boot') {
+      (window as any).__appStartTime = Date.now();
+      
+      // Fallback timeout: force transition to start after 15 seconds
+      const fallbackTimeout = setTimeout(() => {
+        if (appState === 'boot') {
+          console.warn('Boot stage timeout, forcing transition to start');
+          handleBootError();
+        }
+      }, 15000);
+
+      return () => clearTimeout(fallbackTimeout);
+    }
+  }, [appState]);
+
+  // Show splash during boot stage
+  if (appState === 'boot' || !engine) {
+    try {
+      return <Splash onComplete={handleSplashComplete} />;
+    } catch (error) {
+      console.error('Splash component error:', error);
+      handleBootError();
+      return null;
+    }
+  }
+
   return (
-    <div className="app">
+    <div className="app" id="main-content">
       <header className="app-header">
         <div className="container">
           <div className="header-content">

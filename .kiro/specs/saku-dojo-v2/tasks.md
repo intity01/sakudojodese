@@ -13,32 +13,54 @@
 
 
 - [ ] 2. Implement core Dojo Engine functionality
-  - [ ] 2.1 Create session management system
+  - [x] 2.1 Create session management system
+
+
+
     - Write DojoEngine class with session state management
     - Implement startSession method with question pool generation
     - Add session progress tracking (current question, score, total)
     - Create unit tests for session initialization and state management
+
+
+
     - _Requirements: 2.3, 3.1, 3.7_
 
-  - [ ] 2.2 Implement question answering logic
+  - [x] 2.2 Implement question answering logic
+
+
+
     - Write answerMCQ method with choice validation
     - Implement answerTyping method with normalized string matching
     - Add answerOpen method for open-ended questions (no auto-grading)
     - Create scoring and feedback mechanisms
     - Write unit tests for answer validation and scoring
+
     - _Requirements: 3.2, 3.3, 3.4_
 
   - [ ] 2.3 Add session navigation and control
+
+
     - Implement nextQuestion, previousQuestion, and skipQuestion methods
     - Add session completion logic with progress entry generation
+
+
+
     - Create session reset functionality
     - Write unit tests for navigation and session lifecycle
     - _Requirements: 3.2, 3.7_
+
+
+
+
+
 
 - [ ] 3. Create question bank management system
   - [ ] 3.1 Implement static question banks
     - Create question bank data structure organized by Track/Framework/Level
     - Populate initial question sets for EN Classic, EN CEFR, JP Classic, JP JLPT
+
+
     - Implement question filtering and selection logic
     - Write unit tests for question bank access and filtering
     - _Requirements: 1.2, 1.3, 2.2, 2.3_
@@ -52,14 +74,21 @@
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
 - [ ] 4. Implement learning modes
-  - [ ] 4.1 Create Quiz mode implementation
+  - [x] 4.1 Create Quiz mode implementation
+
+
     - Implement quiz session with limited question count (6-14 questions)
     - Add auto-grading and immediate feedback
     - Create progress recording for completed quizzes
     - Write unit tests for quiz mode functionality
     - _Requirements: 3.2, 3.7_
 
-  - [ ] 4.2 Implement Study mode
+
+
+
+  - [x] 4.2 Implement Study mode
+
+
     - Create study session showing all questions with immediate answers
     - Add explanation display for each question
     - Implement navigation through study materials
@@ -120,7 +149,11 @@
     - _Requirements: 6.1, 6.2, 6.3, 6.5_
 
 - [ ] 8. Build React UI components
-  - [ ] 8.1 Create main application layout
+  - [x] 8.1 Create main application layout
+
+
+
+
     - Implement header with title, controls, and export functionality
     - Create track/framework/level selection interface
     - Add mode selection controls with custom question toggle
