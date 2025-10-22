@@ -1,55 +1,44 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import fs from "node:fs";
+import path from "path";
+import { defineConfig } from "vite";
+import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime()];
 
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins,
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@/types': path.resolve(__dirname, 'src/types'),
-      '@/utils': path.resolve(__dirname, 'src/utils'),
-      '@/config': path.resolve(__dirname, 'src/config'),
-      '@/engine': path.resolve(__dirname, 'src/engine'),
-      '@/components': path.resolve(__dirname, 'src/components'),
+      "@": path.resolve(import.meta.dirname, "client", "src"),
+      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },
-  base: process.env.NODE_ENV === 'production' ? '/saku-dojo-v2/' : '/',
+  envDir: path.resolve(import.meta.dirname),
+  root: path.resolve(import.meta.dirname, "client"),
   build: {
-    target: 'es2020',
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          data: ['./src/data/questionBank'],
-        },
-      },
-    },
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    emptyOutDir: true,
   },
   server: {
-    host: true, // Allow external connections
     port: 3000,
-  },
-  preview: {
+    strictPort: false, // Will find next available port if 3000 is busy
     host: true,
-    port: 4173,
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: [],
-    coverage: {
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/**/*.test.ts',
-        'src/**/*.test.tsx',
-      ],
+    allowedHosts: [
+      ".manuspre.computer",
+      ".manus.computer",
+      ".manus-asia.computer",
+      ".manuscomputer.ai",
+      ".manusvm.computer",
+      "localhost",
+      "127.0.0.1",
+    ],
+    fs: {
+      strict: true,
+      deny: ["**/.*"],
     },
   },
 });
